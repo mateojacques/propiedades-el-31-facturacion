@@ -1,8 +1,9 @@
 /**
  * Liquidación PDF.
- *   GET /api/liquidacion/pdf?anio&mes&dueno&comision
+ *   GET /api/liquidacion/pdf?anio&mes&dueno_id&comision
  *
- * Agrupa por coincidencia exacta de `dueno` (string).
+ * Filtra por `dueno_id` (FK). El nombre del dueño y las fichas se obtienen
+ * por JOIN.
  *
  * El layout usa coordenadas X absolutas por columna en vez de `continued: true`
  * (que avanza el cursor por el ancho del texto renderizado, no por el ancho
@@ -20,7 +21,7 @@ import {
 const filtroSchema = z.object({
   anio: z.coerce.number().int(),
   mes: z.coerce.number().int().min(1).max(12),
-  dueno: z.string().min(1),
+  dueno_id: z.coerce.number().int().positive(),
   comision: z.coerce.number().min(0).max(100).default(0),
 });
 
@@ -48,26 +49,45 @@ export const rutasLiquidacion: FastifyPluginAsync = async (app: FastifyInstance)
     const f = parsed.data;
 
     const filas = await app.db
-      .selectFrom('movimientos')
-      .selectAll()
-      .where('anio', '=', f.anio)
-      .where('mes', '=', f.mes)
-      .where('dueno', '=', f.dueno)
-      .orderBy('fecha', 'asc')
-      .orderBy('id', 'asc')
+      .selectFrom('movimientos as m')
+      .leftJoin('inquilinos as i', 'i.id', 'm.inquilino_id')
+      .leftJoin('propiedades as p', 'p.id', 'm.propiedad_id')
+      .select([
+        'm.id as id',
+        'm.fecha as fecha',
+        'm.tipo as tipo',
+        'm.monto_centavos as monto_centavos',
+        'm.concepto as concepto',
+        'm.detalle as detalle',
+        'i.nombre as inquilino_nombre',
+        'p.ficha as propiedad_ficha',
+      ])
+      .where('m.anio', '=', f.anio)
+      .where('m.mes', '=', f.mes)
+      .where('m.dueno_id', '=', f.dueno_id)
+      .orderBy('m.fecha', 'asc')
+      .orderBy('m.id', 'asc')
       .execute();
+
+    const duenoRow = await app.db
+      .selectFrom('duenos')
+      .select(['id', 'nombre'])
+      .where('id', '=', f.dueno_id)
+      .executeTakeFirst();
+    if (!duenoRow) return reply.code(404).send({ error: 'Dueño no encontrado' });
+    const duenoNombre = duenoRow.nombre;
 
     const movimientos: MovimientoCalc[] = filas.map((r) => ({
       id: r.id,
       fecha: r.fecha,
       tipo: r.tipo,
       monto_centavos: r.monto_centavos,
-      dueno: r.dueno ?? undefined,
-      inquilino: r.inquilino ?? undefined,
-      propiedad: r.propiedad ?? undefined,
+      dueno: duenoNombre,
+      inquilino: r.inquilino_nombre ?? undefined,
+      propiedad: r.propiedad_ficha ?? undefined,
     }));
 
-    const liq = calcularLiquidacionDueno(movimientos, f.dueno, f.comision, { anio: f.anio, mes: f.mes });
+    const liq = calcularLiquidacionDueno(movimientos, duenoNombre, f.comision, { anio: f.anio, mes: f.mes });
 
     // ── PDF setup ──────────────────────────────────────────────────────────
     const MARGIN = 50;
@@ -104,7 +124,7 @@ export const rutasLiquidacion: FastifyPluginAsync = async (app: FastifyInstance)
     doc.text('Período:', MARGIN,        metaY + 16, { width: 80 });
     doc.text('Comisión:',MARGIN,        metaY + 32, { width: 80 });
     doc.font('Helvetica').fontSize(10);
-    doc.text(f.dueno,                          MARGIN + 80, metaY,      { width: CONTENT_W - 80 });
+    doc.text(duenoNombre,                      MARGIN + 80, metaY,      { width: CONTENT_W - 80 });
     doc.text(`${MESES_ES[f.mes]} ${f.anio}`,   MARGIN + 80, metaY + 16, { width: CONTENT_W - 80 });
     doc.text(`${f.comision}%`,                 MARGIN + 80, metaY + 32, { width: CONTENT_W - 80 });
     doc.y = metaY + 32 + 16;
@@ -147,7 +167,7 @@ export const rutasLiquidacion: FastifyPluginAsync = async (app: FastifyInstance)
 
     for (const r of filas) {
       const fechaTxt    = formatFechaCorta(r.fecha);
-      const conceptoTxt = `${r.concepto || ''}${r.inquilino ? ' · ' + r.inquilino : ''}`.trim() || '—';
+      const conceptoTxt = `${r.concepto || ''}${r.inquilino_nombre ? ' · ' + r.inquilino_nombre : ''}`.trim() || '—';
       const entradaTxt  = r.tipo === 'entrada' ? formatARS(r.monto_centavos) : '';
       const salidaTxt   = r.tipo === 'salida'  ? formatARS(r.monto_centavos) : '';
 

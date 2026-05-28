@@ -1,11 +1,12 @@
 /**
  * Exportación CSV / Excel.
- *   GET /api/exportar/csv?anio&mes&dueno
- *   GET /api/exportar/excel?anio&mes&dueno
+ *   GET /api/exportar/csv?anio&mes&dueno_id
+ *   GET /api/exportar/excel?anio&mes&dueno_id
  *
  * Cada movimiento se exporta como una fila con columnas "Entrada" y
  * "Salida" (relleno selectivo según `tipo`) para mantener compatibilidad
- * con el formato planilla histórico.
+ * con el formato planilla histórico. Los nombres de dueño/inquilino y la
+ * ficha de propiedad se resuelven por LEFT JOIN.
  */
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import ExcelJS from 'exceljs';
@@ -15,7 +16,7 @@ import { deCentavos } from '../servicios/calculos';
 const filtroSchema = z.object({
   anio: z.coerce.number().int().optional(),
   mes: z.coerce.number().int().optional(),
-  dueno: z.string().optional(),
+  dueno_id: z.coerce.number().int().optional(),
 });
 
 function escapeCsvCell(v: unknown): string {
@@ -27,20 +28,37 @@ function escapeCsvCell(v: unknown): string {
   return s;
 }
 
+function selectEnriquecidos(app: FastifyInstance) {
+  return app.db
+    .selectFrom('movimientos as m')
+    .leftJoin('duenos as d', 'd.id', 'm.dueno_id')
+    .leftJoin('inquilinos as i', 'i.id', 'm.inquilino_id')
+    .leftJoin('propiedades as p', 'p.id', 'm.propiedad_id')
+    .select([
+      'm.id as id',
+      'm.fecha as fecha',
+      'm.tipo as tipo',
+      'm.monto_centavos as monto_centavos',
+      'm.concepto as concepto',
+      'm.detalle as detalle',
+      'd.nombre as dueno_nombre',
+      'i.nombre as inquilino_nombre',
+      'p.ficha as propiedad_ficha',
+    ]);
+}
+
 export const rutasExportar: FastifyPluginAsync = async (app: FastifyInstance) => {
   // ── CSV ─────────────────────────────────────────────────────────────────
   app.get('/csv', async (req, reply) => {
     const parsed = filtroSchema.safeParse(req.query);
     if (!parsed.success) return reply.code(400).send({ error: 'Parámetros inválidos' });
     const f = parsed.data;
-    const filas = await app.db
-      .selectFrom('movimientos')
-      .selectAll()
-      .$if(f.anio !== undefined, (qb) => qb.where('anio', '=', f.anio!))
-      .$if(f.mes !== undefined, (qb) => qb.where('mes', '=', f.mes!))
-      .$if(!!f.dueno, (qb) => qb.where('dueno', '=', f.dueno!))
-      .orderBy('fecha', 'asc')
-      .orderBy('id', 'asc')
+    const filas = await selectEnriquecidos(app)
+      .$if(f.anio !== undefined, (qb) => qb.where('m.anio', '=', f.anio!))
+      .$if(f.mes !== undefined, (qb) => qb.where('m.mes', '=', f.mes!))
+      .$if(f.dueno_id !== undefined, (qb) => qb.where('m.dueno_id', '=', f.dueno_id!))
+      .orderBy('m.fecha', 'asc')
+      .orderBy('m.id', 'asc')
       .execute();
 
     const headers = ['Fecha', 'Dueño', 'Propiedad', 'Inquilino', 'Entrada', 'Salida', 'Concepto', 'Detalle'];
@@ -53,9 +71,9 @@ export const rutasExportar: FastifyPluginAsync = async (app: FastifyInstance) =>
       lines.push(
         [
           r.fecha,
-          r.dueno ?? '',
-          r.propiedad ?? '',
-          r.inquilino ?? '',
+          r.dueno_nombre ?? '',
+          r.propiedad_ficha ?? '',
+          r.inquilino_nombre ?? '',
           deCentavos(entrada).toFixed(2),
           deCentavos(salida).toFixed(2),
           r.concepto,
@@ -63,7 +81,6 @@ export const rutasExportar: FastifyPluginAsync = async (app: FastifyInstance) =>
         ].map(escapeCsvCell).join(',')
       );
     }
-    // Línea final de balance.
     lines.push(['', '', '', 'BALANCE', '', '', deCentavos(saldo).toFixed(2), ''].map(escapeCsvCell).join(','));
 
     const csv = '\uFEFF' + lines.join('\r\n');
@@ -78,14 +95,12 @@ export const rutasExportar: FastifyPluginAsync = async (app: FastifyInstance) =>
     const parsed = filtroSchema.safeParse(req.query);
     if (!parsed.success) return reply.code(400).send({ error: 'Parámetros inválidos' });
     const f = parsed.data;
-    const filas = await app.db
-      .selectFrom('movimientos')
-      .selectAll()
-      .$if(f.anio !== undefined, (qb) => qb.where('anio', '=', f.anio!))
-      .$if(f.mes !== undefined, (qb) => qb.where('mes', '=', f.mes!))
-      .$if(!!f.dueno, (qb) => qb.where('dueno', '=', f.dueno!))
-      .orderBy('fecha', 'asc')
-      .orderBy('id', 'asc')
+    const filas = await selectEnriquecidos(app)
+      .$if(f.anio !== undefined, (qb) => qb.where('m.anio', '=', f.anio!))
+      .$if(f.mes !== undefined, (qb) => qb.where('m.mes', '=', f.mes!))
+      .$if(f.dueno_id !== undefined, (qb) => qb.where('m.dueno_id', '=', f.dueno_id!))
+      .orderBy('m.fecha', 'asc')
+      .orderBy('m.id', 'asc')
       .execute();
 
     const wb = new ExcelJS.Workbook();
@@ -93,7 +108,7 @@ export const rutasExportar: FastifyPluginAsync = async (app: FastifyInstance) =>
     ws.columns = [
       { header: 'Fecha', key: 'fecha', width: 12 },
       { header: 'Dueño', key: 'dueno', width: 24 },
-      { header: 'Propiedad', key: 'propiedad', width: 20 },
+      { header: 'Propiedad', key: 'propiedad', width: 14 },
       { header: 'Inquilino', key: 'inquilino', width: 24 },
       { header: 'Entrada', key: 'entrada', width: 14, style: { numFmt: '#,##0.00' } },
       { header: 'Salida', key: 'salida', width: 14, style: { numFmt: '#,##0.00' } },
@@ -111,9 +126,9 @@ export const rutasExportar: FastifyPluginAsync = async (app: FastifyInstance) =>
       salidas += salida;
       ws.addRow({
         fecha: r.fecha,
-        dueno: r.dueno ?? '',
-        propiedad: r.propiedad ?? '',
-        inquilino: r.inquilino ?? '',
+        dueno: r.dueno_nombre ?? '',
+        propiedad: r.propiedad_ficha ?? '',
+        inquilino: r.inquilino_nombre ?? '',
         entrada: deCentavos(entrada),
         salida: deCentavos(salida),
         concepto: r.concepto,
@@ -121,7 +136,6 @@ export const rutasExportar: FastifyPluginAsync = async (app: FastifyInstance) =>
       });
     }
 
-    // Fila de totales y balance.
     ws.addRow({});
     const filaTotales = ws.addRow({
       dueno: 'TOTALES',

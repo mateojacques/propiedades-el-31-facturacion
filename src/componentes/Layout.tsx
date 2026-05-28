@@ -7,6 +7,8 @@ import {
   ListItemText, Box, Divider,
 } from '@mui/material';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import PersonIcon from '@mui/icons-material/Person';
+import GroupIcon from '@mui/icons-material/Group';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import DescriptionIcon from '@mui/icons-material/Description';
@@ -16,6 +18,8 @@ const ANCHO_DRAWER = 220;
 
 const items = [
   { to: '/movimientos', label: 'Movimientos', icon: <ReceiptLongIcon /> },
+  { to: '/duenos', label: 'Dueños', icon: <PersonIcon /> },
+  { to: '/inquilinos', label: 'Inquilinos', icon: <GroupIcon /> },
   { to: '/importar', label: 'Importar', icon: <FileUploadIcon /> },
   { to: '/exportar', label: 'Exportar', icon: <FileDownloadIcon /> },
   { to: '/liquidacion', label: 'Liquidación', icon: <DescriptionIcon /> },

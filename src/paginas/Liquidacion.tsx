@@ -1,5 +1,6 @@
 /**
  * Generación de PDF de liquidación por dueño y período.
+ * El dueño se elige con AutocompleteDueno (selección por ID).
  */
 import { useState } from 'react';
 import {
@@ -8,21 +9,23 @@ import {
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import { useCliente } from '../api/proveedor-cliente';
 import { MESES_ES } from '../utils/formato';
+import { AutocompleteDueno } from '../componentes/AutocompleteDueno';
+import type { Dueno } from '../api/tipos';
 
 export function Liquidacion(): JSX.Element {
   const cliente = useCliente();
   const ahora = new Date();
   const [anio, setAnio] = useState<string>(String(ahora.getFullYear()));
   const [mes, setMes] = useState<string>(String(ahora.getMonth() + 1));
-  const [dueno, setDueno] = useState<string>('');
+  const [dueno, setDueno] = useState<Dueno | null>(null);
   const [comision, setComision] = useState<string>('0');
   const [error, setError] = useState<string | null>(null);
   const [generando, setGenerando] = useState(false);
 
   async function generar(): Promise<void> {
     setError(null);
-    if (!dueno.trim()) {
-      setError('Debe indicar el nombre del dueño');
+    if (!dueno) {
+      setError('Debe seleccionar un dueño');
       return;
     }
     if (!anio || !mes) {
@@ -32,10 +35,11 @@ export function Liquidacion(): JSX.Element {
     setGenerando(true);
     try {
       const mesEs = MESES_ES[Number(mes)] ?? mes;
-      const nombre = `liquidacion-${dueno.replace(/\s+/g, '_')}-${anio}-${String(mes).padStart(2, '0')}.pdf`;
+      const slug = dueno.nombre.replace(/\s+/g, '_');
+      const nombre = `liquidacion-${slug}-${anio}-${String(mes).padStart(2, '0')}.pdf`;
       await cliente.descargar(
         '/api/liquidacion/pdf',
-        { anio, mes, dueno, comision: comision || '0' },
+        { anio, mes, dueno_id: dueno.id, comision: comision || '0' },
         nombre
       );
       console.log(`PDF de liquidación generado: ${mesEs} ${anio}`);
@@ -70,11 +74,11 @@ export function Liquidacion(): JSX.Element {
             />
           </Grid>
           <Grid item xs={6}>
-            <TextField
-              label="Dueño (nombre exacto)"
+            <AutocompleteDueno
               value={dueno}
-              onChange={(e) => setDueno(e.target.value)}
-              fullWidth required
+              onChange={setDueno}
+              required
+              size="medium"
             />
           </Grid>
           <Grid item xs={3}>

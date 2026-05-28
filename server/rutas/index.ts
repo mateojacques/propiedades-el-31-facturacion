@@ -4,6 +4,9 @@
 import type { FastifyInstance } from 'fastify';
 import { rutasSalud } from './salud';
 import { rutasPin } from './pin';
+import { rutasPropiedades } from './propiedades';
+import { rutasDuenos } from './duenos';
+import { rutasInquilinos } from './inquilinos';
 import { rutasMovimientos } from './movimientos';
 import { rutasImportar } from './importar';
 import { rutasExportar } from './exportar';
@@ -14,6 +17,9 @@ import { rutasTipoCambio } from './tipo-cambio';
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
   await app.register(rutasSalud, { prefix: '/api' });
   await app.register(rutasPin, { prefix: '/api/pin' });
+  await app.register(rutasPropiedades, { prefix: '/api/propiedades' });
+  await app.register(rutasDuenos, { prefix: '/api/duenos' });
+  await app.register(rutasInquilinos, { prefix: '/api/inquilinos' });
   await app.register(rutasMovimientos, { prefix: '/api/movimientos' });
   await app.register(rutasImportar, { prefix: '/api/importar' });
   await app.register(rutasExportar, { prefix: '/api/exportar' });

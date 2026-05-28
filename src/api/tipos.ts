@@ -1,9 +1,41 @@
 /**
  * DTOs que reflejan las respuestas del servidor. Sincronizado con
- * server/servicios/movimientos-util.ts, observaciones-caja y rutas.
+ * server/servicios/{movimientos,duenos,inquilinos,propiedades}-util.ts.
  */
 export type TipoMovimiento = 'entrada' | 'salida';
 export type TipoObservacionCaja = 'sobrante' | 'faltante';
+
+export interface Propiedad {
+  id: number;
+  ficha: string;
+  duenos_ids: number[];
+  creado_en: string;
+  actualizado_en: string;
+}
+
+export interface DuenoPropiedadResumen {
+  id: number;
+  ficha: string;
+}
+
+export interface Dueno {
+  id: number;
+  nombre: string;
+  documento: string | null;
+  propiedades: DuenoPropiedadResumen[];
+  creado_en: string;
+  actualizado_en: string;
+}
+
+export interface Inquilino {
+  id: number;
+  nombre: string;
+  documento: string | null;
+  propiedad_id: number;
+  propiedad_ficha: string;
+  creado_en: string;
+  actualizado_en: string;
+}
 
 export interface Movimiento {
   id: number;
@@ -12,9 +44,12 @@ export interface Movimiento {
   mes: number;
   tipo: TipoMovimiento;
   monto_centavos: number;
-  dueno: string | null;
-  inquilino: string | null;
-  propiedad: string | null;
+  dueno_id: number | null;
+  dueno_nombre: string | null;
+  inquilino_id: number | null;
+  inquilino_nombre: string | null;
+  propiedad_id: number | null;
+  propiedad_ficha: string | null;
   concepto: string;
   detalle: string | null;
   pagos_de_meses: Array<{ anio: number; mes: number }>;
@@ -76,10 +111,24 @@ export interface FilaImportacion {
   parseErrors: string[];
 }
 
+export interface EntidadesACrear {
+  propiedades: string[];
+  duenos: string[];
+  inquilinos: string[];
+}
+
 export interface VistaPreviaImportacion {
   ok: boolean;
   validas: FilaImportacion[];
   errores: Array<{ rowNumber: number; message: string }>;
   advertencias: Array<{ rowNumber: number; message: string }>;
   total_leidas: number;
+  entidades_a_crear: EntidadesACrear;
+}
+
+export interface ResultadoConfirmacionImportacion {
+  insertadas: number;
+  duenos_creados: number;
+  inquilinos_creados: number;
+  propiedades_creadas: number;
 }

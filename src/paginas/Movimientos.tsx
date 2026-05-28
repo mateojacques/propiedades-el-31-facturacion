@@ -1,10 +1,11 @@
 /**
- * Listado de movimientos del período. Una sola tabla con filtros por año/mes/tipo,
- * búsqueda fuzzy por dueño (debounced) y badge único de "Balance del mes".
+ * Listado de movimientos del período. Una sola tabla con filtros por
+ * año/mes/tipo y filtrado por dueño/inquilino/propiedad usando Autocompletes
+ * (selección por ID, sin búsqueda fuzzy). Badge único de "Balance del mes".
  * Incluye la Observación de Caja del período (sobrante/faltante) arriba.
  * El balance se invalida automáticamente cuando cambia cualquier movimiento.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Box, Paper, Typography, Grid, TextField, Button, IconButton, Stack,
   CircularProgress, Alert, Chip, Tooltip, MenuItem,
@@ -21,21 +22,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCliente } from '../api/proveedor-cliente';
 import type {
   Movimiento, ListaMovimientos, BalanceMensual, ObservacionCaja, TipoMovimiento,
+  Dueno, Inquilino, Propiedad,
 } from '../api/tipos';
 import { formatARSConSimbolo, formatFechaCorta, MESES_ES } from '../utils/formato';
 import { MovimientoDialog } from './MovimientoFormulario';
 import { ObservacionCajaCard } from '../componentes/ObservacionCajaCard';
 import { ObservacionCajaDialog } from '../componentes/ObservacionCajaDialog';
-
-/** Hook simple de debounce para el input de búsqueda. */
-function useDebounced<T>(value: T, ms = 300): T {
-  const [v, setV] = useState(value);
-  useEffect(() => {
-    const id = setTimeout(() => setV(value), ms);
-    return () => clearTimeout(id);
-  }, [value, ms]);
-  return v;
-}
+import { AutocompleteDueno } from '../componentes/AutocompleteDueno';
+import { AutocompleteInquilino } from '../componentes/AutocompleteInquilino';
+import { AutocompletePropiedad } from '../componentes/AutocompletePropiedad';
 
 export function Movimientos(): JSX.Element {
   const cliente = useCliente();
@@ -44,8 +39,9 @@ export function Movimientos(): JSX.Element {
   const [anio, setAnio] = useState<string>(String(ahora.getFullYear()));
   const [mes, setMes] = useState<string>(String(ahora.getMonth() + 1));
   const [tipo, setTipo] = useState<TipoMovimiento | ''>('');
-  const [busqueda, setBusqueda] = useState<string>('');
-  const qDebounced = useDebounced(busqueda, 300);
+  const [duenoFiltro, setDuenoFiltro] = useState<Dueno | null>(null);
+  const [inquilinoFiltro, setInquilinoFiltro] = useState<Inquilino | null>(null);
+  const [propiedadFiltro, setPropiedadFiltro] = useState<Propiedad | null>(null);
   const [pagina, setPagina] = useState<GridPaginationModel>({ page: 0, pageSize: 50 });
   const [dlgMov, setDlgMov] = useState<{ abierto: boolean; movimiento: Movimiento | null }>({
     abierto: false, movimiento: null,
@@ -61,11 +57,13 @@ export function Movimientos(): JSX.Element {
       anio: anio || undefined,
       mes: mes || undefined,
       tipo: tipo || undefined,
-      q: qDebounced || undefined,
+      dueno_id: duenoFiltro?.id,
+      inquilino_id: inquilinoFiltro?.id,
+      propiedad_id: propiedadFiltro?.id,
       pagina: pagina.page + 1,
       por_pagina: pagina.pageSize,
     }),
-    [anio, mes, tipo, qDebounced, pagina]
+    [anio, mes, tipo, duenoFiltro, inquilinoFiltro, propiedadFiltro, pagina]
   );
 
   const lista = useQuery({
@@ -121,9 +119,20 @@ export function Movimientos(): JSX.Element {
         );
       },
     },
-    { field: 'dueno', headerName: 'Dueño', flex: 1, minWidth: 140 },
-    { field: 'inquilino', headerName: 'Inquilino', flex: 1, minWidth: 140 },
-    { field: 'propiedad', headerName: 'Propiedad', width: 130 },
+    {
+      field: 'dueno_nombre', headerName: 'Dueño', flex: 1, minWidth: 140,
+      valueGetter: (_, row) => row.dueno_nombre ?? '',
+    },
+    {
+      field: 'inquilino_nombre', headerName: 'Inquilino', flex: 1, minWidth: 140,
+      valueGetter: (_, row) => row.inquilino_nombre ?? '',
+    },
+    {
+      field: 'propiedad_ficha', headerName: 'Propiedad', width: 130,
+      renderCell: (p) => p.row.propiedad_ficha
+        ? <Chip size="small" label={p.row.propiedad_ficha} variant="outlined" />
+        : null,
+    },
     {
       field: 'monto_centavos', headerName: 'Monto', width: 130, align: 'right', headerAlign: 'right',
       renderCell: (p) => {
@@ -160,7 +169,6 @@ export function Movimientos(): JSX.Element {
     },
   ];
 
-  // Color del balance: positivo verde, negativo rojo, cero neutro.
   const balanceCentavos = balance.data?.balance_centavos ?? 0;
   const balanceColor: 'success' | 'error' | 'default' =
     balanceCentavos > 0 ? 'success' : balanceCentavos < 0 ? 'error' : 'default';
@@ -222,12 +230,10 @@ export function Movimientos(): JSX.Element {
             </TextField>
           </Grid>
           <Grid item xs={3}>
-            <TextField
-              label="Buscar dueño"
-              size="small" fullWidth
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="ej. perez"
+            <AutocompleteDueno
+              value={duenoFiltro}
+              onChange={setDuenoFiltro}
+              label="Filtrar por dueño"
             />
           </Grid>
           <Grid item xs={3}>
@@ -244,6 +250,21 @@ export function Movimientos(): JSX.Element {
                 />
               </Tooltip>
             )}
+          </Grid>
+          <Grid item xs={3}>
+            <AutocompleteInquilino
+              value={inquilinoFiltro}
+              onChange={setInquilinoFiltro}
+              label="Filtrar por inquilino"
+              filtrarPorPropiedadId={propiedadFiltro?.id ?? null}
+            />
+          </Grid>
+          <Grid item xs={3}>
+            <AutocompletePropiedad
+              value={propiedadFiltro}
+              onChange={setPropiedadFiltro}
+              label="Filtrar por propiedad"
+            />
           </Grid>
         </Grid>
       </Paper>

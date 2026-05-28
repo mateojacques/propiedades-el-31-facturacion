@@ -1,19 +1,24 @@
 /**
  * Importación CSV / XLSX. Flujo en 3 pasos:
  *   1) Selección de archivo
- *   2) Vista previa con errores / advertencias
- *   3) Confirmación → inserta filas válidas
+ *   2) Vista previa: muestra filas válidas, errores, advertencias y
+ *      entidades nuevas que se crearán (dueños, inquilinos, propiedades).
+ *   3) Confirmación → inserta filas válidas y materializa entidades nuevas.
  */
 import { useRef, useState } from 'react';
 import {
   Box, Paper, Typography, Button, Alert, Stack, Chip, CircularProgress,
   Table, TableHead, TableRow, TableCell, TableBody, TableContainer,
+  Accordion, AccordionSummary, AccordionDetails,
 } from '@mui/material';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCliente } from '../api/proveedor-cliente';
-import type { VistaPreviaImportacion, FilaImportacion } from '../api/tipos';
+import type {
+  VistaPreviaImportacion, FilaImportacion, ResultadoConfirmacionImportacion,
+} from '../api/tipos';
 import { formatARSConSimbolo } from '../utils/formato';
 
 function etiquetaTipo(t: FilaImportacion['tipo']): string {
@@ -27,7 +32,7 @@ export function Importar(): JSX.Element {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [archivo, setArchivo] = useState<File | null>(null);
-  const [resultadoFinal, setResultadoFinal] = useState<{ insertadas: number } | null>(null);
+  const [resultadoFinal, setResultadoFinal] = useState<ResultadoConfirmacionImportacion | null>(null);
 
   const vistaPrevia = useMutation({
     mutationFn: (f: File) => cliente.uploadFile<VistaPreviaImportacion>('/api/importar/vista-previa', f),
@@ -35,14 +40,14 @@ export function Importar(): JSX.Element {
 
   const confirmar = useMutation({
     mutationFn: (filas: FilaImportacion[]) =>
-      cliente.post<{ insertadas: number; duenos_recalculados: number }>(
-        '/api/importar/confirmar',
-        { filas }
-      ),
+      cliente.post<ResultadoConfirmacionImportacion>('/api/importar/confirmar', { filas }),
     onSuccess: (r) => {
-      setResultadoFinal({ insertadas: r.insertadas });
+      setResultadoFinal(r);
       qc.invalidateQueries({ queryKey: ['movimientos'] });
       qc.invalidateQueries({ queryKey: ['movimientos-balance'] });
+      qc.invalidateQueries({ queryKey: ['duenos'] });
+      qc.invalidateQueries({ queryKey: ['inquilinos'] });
+      qc.invalidateQueries({ queryKey: ['propiedades'] });
       vistaPrevia.reset();
       setArchivo(null);
     },
@@ -65,6 +70,11 @@ export function Importar(): JSX.Element {
   }
 
   const preview = vistaPrevia.data;
+  const totalNuevas = preview
+    ? preview.entidades_a_crear.duenos.length +
+      preview.entidades_a_crear.inquilinos.length +
+      preview.entidades_a_crear.propiedades.length
+    : 0;
 
   return (
     <Box>
@@ -105,13 +115,17 @@ export function Importar(): JSX.Element {
 
       {resultadoFinal && (
         <Alert severity="success" icon={<CheckCircleIcon />} sx={{ mb: 2 }}>
-          Se importaron {resultadoFinal.insertadas} movimientos correctamente.
+          Se importaron <strong>{resultadoFinal.insertadas}</strong> movimientos.
+          {resultadoFinal.duenos_creados > 0 && ` · ${resultadoFinal.duenos_creados} dueño(s) creado(s)`}
+          {resultadoFinal.inquilinos_creados > 0 && ` · ${resultadoFinal.inquilinos_creados} inquilino(s) creado(s)`}
+          {resultadoFinal.propiedades_creadas > 0 && ` · ${resultadoFinal.propiedades_creadas} propiedad(es) creada(s)`}
+          .
         </Alert>
       )}
 
       {preview && !resultadoFinal && (
         <Paper sx={{ p: 2 }}>
-          <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+          <Stack direction="row" spacing={1} sx={{ mb: 2 }} flexWrap="wrap">
             <Chip label={`Total leídas: ${preview.total_leidas}`} />
             <Chip color="success" label={`Válidas: ${preview.validas.length}`} />
             {preview.errores.length > 0 && (
@@ -121,6 +135,62 @@ export function Importar(): JSX.Element {
               <Chip color="warning" label={`Advertencias: ${preview.advertencias.length}`} />
             )}
           </Stack>
+
+          {totalNuevas > 0 && (
+            <Accordion sx={{ mb: 2 }} defaultExpanded>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                  <Typography variant="subtitle2">Se crearán nuevas entidades:</Typography>
+                  {preview.entidades_a_crear.duenos.length > 0 && (
+                    <Chip color="primary" size="small"
+                      label={`${preview.entidades_a_crear.duenos.length} dueño(s)`} />
+                  )}
+                  {preview.entidades_a_crear.inquilinos.length > 0 && (
+                    <Chip color="primary" size="small"
+                      label={`${preview.entidades_a_crear.inquilinos.length} inquilino(s)`} />
+                  )}
+                  {preview.entidades_a_crear.propiedades.length > 0 && (
+                    <Chip color="primary" size="small"
+                      label={`${preview.entidades_a_crear.propiedades.length} propiedad(es)`} />
+                  )}
+                </Stack>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Stack spacing={1}>
+                  {preview.entidades_a_crear.propiedades.length > 0 && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Propiedades:</Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                        {preview.entidades_a_crear.propiedades.map((f) => (
+                          <Chip key={f} size="small" label={f} variant="outlined" />
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+                  {preview.entidades_a_crear.duenos.length > 0 && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Dueños:</Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                        {preview.entidades_a_crear.duenos.map((n) => (
+                          <Chip key={n} size="small" label={n} variant="outlined" />
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+                  {preview.entidades_a_crear.inquilinos.length > 0 && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">Inquilinos:</Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                        {preview.entidades_a_crear.inquilinos.map((n) => (
+                          <Chip key={n} size="small" label={n} variant="outlined" />
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+                </Stack>
+              </AccordionDetails>
+            </Accordion>
+          )}
 
           {preview.errores.length > 0 && (
             <Alert severity="error" sx={{ mb: 2 }}>

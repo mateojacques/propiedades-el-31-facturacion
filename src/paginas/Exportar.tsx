@@ -1,5 +1,5 @@
 /**
- * Exportación de movimientos a CSV o Excel.
+ * Exportación de movimientos a CSV o Excel. Filtro de dueño opcional por ID.
  * El backend sigue mostrando columnas Entrada/Salida/Balance en la planilla
  * exportada para mantener la legibilidad histórica del usuario final.
  */
@@ -10,12 +10,14 @@ import {
 import GridOnIcon from '@mui/icons-material/GridOn';
 import DescriptionIcon from '@mui/icons-material/Description';
 import { useCliente } from '../api/proveedor-cliente';
+import { AutocompleteDueno } from '../componentes/AutocompleteDueno';
+import type { Dueno } from '../api/tipos';
 
 export function Exportar(): JSX.Element {
   const cliente = useCliente();
   const [anio, setAnio] = useState<string>('');
   const [mes, setMes] = useState<string>('');
-  const [dueno, setDueno] = useState<string>('');
+  const [dueno, setDueno] = useState<Dueno | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [exportando, setExportando] = useState<'csv' | 'excel' | null>(null);
 
@@ -27,7 +29,11 @@ export function Exportar(): JSX.Element {
       const nombre = `movimientos${sufijo ? '-' + sufijo : ''}.${formato === 'csv' ? 'csv' : 'xlsx'}`;
       await cliente.descargar(
         `/api/exportar/${formato}`,
-        { anio: anio || undefined, mes: mes || undefined, dueno: dueno || undefined },
+        {
+          anio: anio || undefined,
+          mes: mes || undefined,
+          dueno_id: dueno?.id,
+        },
         nombre
       );
     } catch (e) {
@@ -56,9 +62,11 @@ export function Exportar(): JSX.Element {
             />
           </Grid>
           <Grid item xs={6}>
-            <TextField
-              label="Dueño (exacto)" value={dueno}
-              onChange={(e) => setDueno(e.target.value)} fullWidth
+            <AutocompleteDueno
+              value={dueno}
+              onChange={setDueno}
+              label="Filtrar por dueño (opcional)"
+              size="medium"
             />
           </Grid>
         </Grid>
