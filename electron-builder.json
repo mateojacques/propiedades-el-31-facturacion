@@ -1,0 +1,48 @@
+{
+  "appId": "ar.com.propiedadesel31.facturacion",
+  "productName": "Propiedades El 31 - Facturación",
+  "copyright": "Copyright © 2026 Propiedades El 31",
+  "directories": {
+    "output": "dist-installer",
+    "buildResources": "recursos"
+  },
+  "files": [
+    "dist-electron/**/*",
+    "dist-renderer/**/*",
+    "package.json",
+    "!**/*.map",
+    "!**/*.ts"
+  ],
+  "asar": true,
+  "asarUnpack": [
+    "**/node_modules/better-sqlite3/**/*",
+    "**/node_modules/bcryptjs/**/*"
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "artifactName": "PropiedadesEl31Facturacion-Setup-${version}.${ext}"
+  },
+  "linux": {
+    "target": [
+      { "target": "AppImage", "arch": ["x64"] }
+    ],
+    "category": "Office",
+    "artifactName": "PropiedadesEl31Facturacion-${version}.${ext}"
+  },
+  "nsis": {
+    "oneClick": true,
+    "perMachine": false,
+    "allowElevation": false,
+    "deleteAppDataOnUninstall": false,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Propiedades El 31 - Facturación",
+    "include": "recursos/installer.nsh"
+  },
+  "npmRebuild": true
+}
