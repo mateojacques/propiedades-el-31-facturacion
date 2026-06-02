@@ -295,6 +295,8 @@ export function Movimientos(): JSX.Element {
       <MovimientoDialog
         open={dlgMov.abierto}
         movimiento={dlgMov.movimiento}
+        periodoAnio={anioNum}
+        periodoMes={mesNum}
         onClose={() => setDlgMov({ abierto: false, movimiento: null })}
       />
 

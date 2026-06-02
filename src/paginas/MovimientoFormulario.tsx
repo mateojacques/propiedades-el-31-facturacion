@@ -8,7 +8,7 @@
  * Auto-fill: al seleccionar un inquilino, se autocompleta la propiedad
  * asociada (si no había ninguna seleccionada).
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
   Grid, Stack, Alert, ToggleButton, ToggleButtonGroup,
@@ -24,12 +24,15 @@ import { AutocompleteInquilino } from '../componentes/AutocompleteInquilino';
 import { AutocompletePropiedad } from '../componentes/AutocompletePropiedad';
 import { DuenoDialog } from './DuenoFormulario';
 import { InquilinoDialog } from './InquilinoFormulario';
-import { hoyIso } from '../utils/formato';
+import { hoyIso, fechaDefaultParaPeriodo } from '../utils/formato';
 
 interface Props {
   open: boolean;
   onClose: () => void;
   movimiento: Movimiento | null; // null → crear
+  /** Período seleccionado en el listado (para fecha por defecto al crear). */
+  periodoAnio?: number;
+  periodoMes?: number;
 }
 
 interface Form {
@@ -43,9 +46,9 @@ interface Form {
   detalle: string;
 }
 
-function emptyForm(): Form {
+function emptyForm(fechaInicial?: string): Form {
   return {
-    fecha: hoyIso(),
+    fecha: fechaInicial ?? hoyIso(),
     tipo: 'entrada',
     monto_centavos: 0,
     dueno: null,
@@ -56,7 +59,9 @@ function emptyForm(): Form {
   };
 }
 
-export function MovimientoDialog({ open, onClose, movimiento }: Props): JSX.Element {
+export function MovimientoDialog({
+  open, onClose, movimiento, periodoAnio, periodoMes,
+}: Props): JSX.Element {
   const cliente = useCliente();
   const qc = useQueryClient();
   const [form, setForm] = useState<Form>(() => emptyForm());
@@ -83,21 +88,39 @@ export function MovimientoDialog({ open, onClose, movimiento }: Props): JSX.Elem
     staleTime: 30_000,
   });
 
+  // Identificador del "qué estamos editando/creando" para inicializar el form
+  // una sola vez por apertura. Evita que la invalidación de queries (al crear
+  // dueños/inquilinos desde sub-diálogos) reinicie el formulario y borre lo
+  // ya cargado por el usuario.
+  const initRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!open) return;
-    setError(null);
-    if (!movimiento) {
-      setForm(emptyForm());
+    if (!open) {
+      initRef.current = null;
       return;
     }
+    const key = movimiento ? `edit:${movimiento.id}` : 'new';
+    if (initRef.current === key) return;
+
+    setError(null);
+
+    if (!movimiento) {
+      setForm(emptyForm(fechaDefaultParaPeriodo(periodoAnio, periodoMes)));
+      initRef.current = key;
+      return;
+    }
+
+    // Edición: necesitamos los catálogos para hidratar las relaciones por ID.
+    if (!duenos.data || !inquilinos.data || !propiedades.data) return;
+
     const d = movimiento.dueno_id != null
-      ? duenos.data?.find((x) => x.id === movimiento.dueno_id) ?? null
+      ? duenos.data.find((x) => x.id === movimiento.dueno_id) ?? null
       : null;
     const i = movimiento.inquilino_id != null
-      ? inquilinos.data?.find((x) => x.id === movimiento.inquilino_id) ?? null
+      ? inquilinos.data.find((x) => x.id === movimiento.inquilino_id) ?? null
       : null;
     const p = movimiento.propiedad_id != null
-      ? propiedades.data?.find((x) => x.id === movimiento.propiedad_id) ?? null
+      ? propiedades.data.find((x) => x.id === movimiento.propiedad_id) ?? null
       : null;
     setForm({
       fecha: movimiento.fecha,
@@ -109,7 +132,8 @@ export function MovimientoDialog({ open, onClose, movimiento }: Props): JSX.Elem
       concepto: movimiento.concepto,
       detalle: movimiento.detalle ?? '',
     });
-  }, [open, movimiento, duenos.data, inquilinos.data, propiedades.data]);
+    initRef.current = key;
+  }, [open, movimiento, duenos.data, inquilinos.data, propiedades.data, periodoAnio, periodoMes]);
 
   const guardar = useMutation({
     mutationFn: async () => {

@@ -67,3 +67,22 @@ export function hoyIso(): string {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
+
+/**
+ * Devuelve la fecha por defecto para un nuevo registro dentro del período
+ * filtrado (anio, mes). Si el período coincide con el mes actual (o no hay
+ * filtro), retorna hoy. En caso contrario retorna el primer día del mes
+ * filtrado, para que el registro creado caiga dentro del período visible.
+ */
+export function fechaDefaultParaPeriodo(anio?: number, mes?: number): string {
+  const hoy = new Date();
+  if (
+    !anio || !mes
+    || !Number.isFinite(anio) || !Number.isFinite(mes)
+    || (anio === hoy.getFullYear() && mes === hoy.getMonth() + 1)
+  ) {
+    return hoyIso();
+  }
+  const m = String(mes).padStart(2, '0');
+  return `${anio}-${m}-01`;
+}
