@@ -1,0 +1,43 @@
+{
+  "id": "auto-updater-04",
+  "seq": "04",
+  "title": "Create src/componentes/SeccionActualizacion.tsx MUI card rendering all hook states",
+  "status": "completed",
+  "depends_on": ["03"],
+  "parallel": true,
+  "suggested_agent": "OpenFrontendSpecialist",
+  "context_files": [
+    "/home/mateo/.opencode/context/core/standards/code-quality.md",
+    "/home/mateo/.opencode/context/ui/web/ui-styling-standards.md",
+    "/home/mateo/.opencode/context/core/workflows/design-iteration-overview.md"
+  ],
+  "reference_files": [
+    "src/paginas/Configuracion.tsx",
+    "src/hooks/useAutoUpdater.ts",
+    ".tmp/sessions/2026-06-02-auto-updater/context.md"
+  ],
+  "description": "MUI Paper card that renders each branch of the UpdateStatus union with appropriate UI per '## Components / 3. SeccionActualizacion.tsx' and '## Exit Criteria' in context.md. Spanish copy throughout (no ñ in identifiers — only in user-visible strings).",
+  "acceptance_criteria": [
+    "File src/componentes/SeccionActualizacion.tsx exists",
+    "Default-exports a React function component SeccionActualizacion (no props)",
+    "Uses useAutoUpdater() hook; does not import 'electron' or 'electron-updater'",
+    "Wraps content in MUI <Paper> matching the card style of other Configuracion sections",
+    "Renders 'Versión actual: {currentVersion}' label",
+    "Renders 'Buscar actualizaciones' button when status.kind === 'idle' | 'not-available' | 'error'",
+    "Renders <CircularProgress /> + 'Buscando actualizaciones…' when kind === 'checking'",
+    "Renders new version + releaseNotes (if present) + 'Descargar actualización' button when kind === 'available'",
+    "Renders <LinearProgress variant='determinate' value={percent}/> + 'X.X / Y.Y MB (Z%)' when kind === 'downloading'",
+    "Renders 'Reiniciar e instalar ahora' button when kind === 'downloaded'",
+    "Renders MUI <Alert severity='error'> with friendly Spanish message when kind === 'error'",
+    "Follows 4-stage design workflow",
+    "Responsive at all MUI breakpoints (xs/sm/md)",
+    "tsc clean; no 'any' types"
+  ],
+  "deliverables": [
+    "src/componentes/SeccionActualizacion.tsx"
+  ],
+  "agent_id": "coder-agent",
+  "started_at": "2026-06-02T14:30:00Z",
+  "completed_at": "2026-06-02T14:35:00Z",
+  "completion_summary": "Created SeccionActualizacion.tsx (192 lines): MUI Paper card with exhaustive switch over all 8 UpdateStatus kinds, Spanish copy, never-check guard, inline formatBytes, reuses formatFechaCorta."
+}

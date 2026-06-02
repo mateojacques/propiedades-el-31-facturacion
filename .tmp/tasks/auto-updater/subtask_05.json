@@ -1,0 +1,40 @@
+{
+  "id": "auto-updater-05",
+  "seq": "05",
+  "title": "Extend electron/preload.ts and src/tipos/global.d.ts with update.* bridge API",
+  "status": "completed",
+  "depends_on": [],
+  "parallel": true,
+  "suggested_agent": "CoderAgent",
+  "context_files": [
+    "/home/mateo/.opencode/context/core/standards/code-quality.md",
+    "/home/mateo/.opencode/context/core/standards/security-patterns.md"
+  ],
+  "reference_files": [
+    "electron/preload.ts",
+    "src/tipos/global.d.ts",
+    ".tmp/sessions/2026-06-02-auto-updater/context.md"
+  ],
+  "description": "Extend the existing contextBridge bridge object with an update namespace, and keep global.d.ts AppBridge in sync. UpdateStatusPayload must mirror the renderer-side UpdateStatus union from '## Components / 2.' in context.md so that subtask_03 (hook) and subtask_04 (component) consume it directly.",
+  "acceptance_criteria": [
+    "electron/preload.ts: bridge object exposes update: { check, download, install, getVersion, onStatus }",
+    "update.check: () => Promise<void> → ipcRenderer.invoke('update:check')",
+    "update.download: () => Promise<void> → ipcRenderer.invoke('update:download')",
+    "update.install: () => Promise<void> → ipcRenderer.invoke('update:install')",
+    "update.getVersion: () => Promise<string> → ipcRenderer.invoke('update:get-version')",
+    "update.onStatus: (cb: (p: UpdateStatusPayload) => void) => () => void — subscribes to ipcRenderer.on('update:status', ...) and returns an unsubscribe function",
+    "contextIsolation/sandbox semantics preserved (no Node API leaks; no exposing ipcRenderer directly)",
+    "src/tipos/global.d.ts exports/declares UpdateStatusPayload as a discriminated union matching exactly the UpdateStatus union in context.md (kinds: idle, checking, not-available, available, downloading, downloaded, error, plus dev-mode if needed)",
+    "AppBridge interface gains an update: { ... } field whose signatures match preload.ts exactly",
+    "tsc -p tsconfig.electron.json AND tsc on the renderer config both succeed",
+    "grep finds 'update:check', 'update:download', 'update:install', 'update:get-version', 'update:status' literally in preload.ts"
+  ],
+  "deliverables": [
+    "electron/preload.ts (modified)",
+    "src/tipos/global.d.ts (modified)"
+  ],
+  "agent_id": "coder-agent",
+  "started_at": "2026-06-02T14:10:00Z",
+  "completed_at": "2026-06-02T14:15:00Z",
+  "completion_summary": "Extended preload.ts and global.d.ts with update.* bridge: check/download/install/getCurrentVersion + onStatus(cb)=>unsubscribe; UpdateStatusPayload union mirrored on both sides."
+}

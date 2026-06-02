@@ -1,0 +1,35 @@
+{
+  "id": "auto-updater-09",
+  "seq": "09",
+  "title": "Replace softprops/action-gh-release with electron-builder --publish always in CI",
+  "status": "completed",
+  "depends_on": ["01"],
+  "parallel": true,
+  "suggested_agent": "CoderAgent",
+  "context_files": [
+    "/home/mateo/.opencode/context/core/standards/code-quality.md",
+    "/home/mateo/.opencode/context/core/standards/security-patterns.md"
+  ],
+  "reference_files": [
+    ".github/workflows/build-windows.yml",
+    "electron-builder.json",
+    ".tmp/sessions/2026-06-02-auto-updater/context.md"
+  ],
+  "description": "REPLACE (not augment) the softprops/action-gh-release step with an electron-builder publish invocation. Per '## External Docs Pinned / Required release artifacts' in context.md, only `electron-builder --publish always` produces latest.yml + .blockmap (action-gh-release uploads only the .exe and breaks auto-update). KEEP the upload-artifact step for non-release manual runs.",
+  "acceptance_criteria": [
+    "softprops/action-gh-release step is removed from .github/workflows/build-windows.yml",
+    "A new step runs electron-builder with --publish always (e.g. `npx electron-builder --win --publish always` or via npm script) on tag push / release-eligible runs",
+    "The step exports GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} so electron-builder can publish to GitHub Releases",
+    "The actions/upload-artifact step is preserved for non-release / workflow_dispatch runs (e.g. gated by a condition or unconditional)",
+    "Workflow YAML is valid (yamllint or actionlint passes if available; otherwise GH 'View workflow' renders without parse error)",
+    "After a successful release run, latest.yml + .exe + .exe.blockmap will be attached to the GitHub Release (verifiable on next tag — acceptable as deferred validation noted in subtask_10)",
+    "No publish credentials are committed; only GITHUB_TOKEN reference is used"
+  ],
+  "deliverables": [
+    ".github/workflows/build-windows.yml (modified)"
+  ],
+  "agent_id": "coder-agent",
+  "started_at": "2026-06-02T00:00:00Z",
+  "completed_at": "2026-06-02T00:00:00Z",
+  "completion_summary": "Replaced softprops/action-gh-release with electron-builder --win --x64 --publish always; split release vs non-release build paths; kept upload-artifact; documented version-bump requirement"
+}

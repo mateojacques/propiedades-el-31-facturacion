@@ -1,0 +1,34 @@
+{
+  "id": "auto-updater-07",
+  "seq": "07",
+  "title": "Mount <SeccionActualizacion /> in Configuracion.tsx and remove hardcoded version string",
+  "status": "completed",
+  "depends_on": ["04"],
+  "parallel": true,
+  "suggested_agent": "OpenFrontendSpecialist",
+  "context_files": [
+    "/home/mateo/.opencode/context/core/standards/code-quality.md",
+    "/home/mateo/.opencode/context/ui/web/ui-styling-standards.md"
+  ],
+  "reference_files": [
+    "src/paginas/Configuracion.tsx",
+    "src/componentes/SeccionActualizacion.tsx",
+    ".tmp/sessions/2026-06-02-auto-updater/context.md"
+  ],
+  "description": "Render the new section in Configuracion and replace the hardcoded 'versión 0.1.0' string with the version surfaced by the hook (via SeccionActualizacion). Per '## Constraints / Keep package.json.version as single source of truth' — no string literal versions allowed.",
+  "acceptance_criteria": [
+    "src/paginas/Configuracion.tsx imports and renders <SeccionActualizacion />",
+    "Component placement matches existing MUI Paper card layout / spacing",
+    "grep -n '0.1.0' src/paginas/Configuracion.tsx returns no matches",
+    "grep -rn 'versión 0\\.' src/ returns no matches",
+    "tsc clean",
+    "Page renders without runtime errors in dev (npm run dev)"
+  ],
+  "deliverables": [
+    "src/paginas/Configuracion.tsx (modified)"
+  ],
+  "agent_id": "coder-agent",
+  "started_at": "2026-06-02T00:00:00Z",
+  "completed_at": "2026-06-02T00:00:00Z",
+  "completion_summary": "Mounted <SeccionActualizacion /> between PIN and Carpeta de datos Papers; replaced hardcoded 0.1.0 footer with currentVersion from useAutoUpdater hook"
+}

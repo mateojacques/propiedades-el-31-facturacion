@@ -1,0 +1,39 @@
+{
+  "id": "auto-updater-10",
+  "seq": "10",
+  "title": "Validate: typecheck (3 configs) + build + dist:linux smoke + grep audits",
+  "status": "pending",
+  "depends_on": ["01", "02", "03", "04", "05", "06", "07", "08", "09"],
+  "parallel": false,
+  "suggested_agent": "TestEngineer",
+  "context_files": [
+    "/home/mateo/.opencode/context/core/standards/code-quality.md",
+    "/home/mateo/.opencode/context/core/standards/security-patterns.md"
+  ],
+  "reference_files": [
+    "package.json",
+    "electron-builder.json",
+    "tsconfig.electron.json",
+    ".tmp/sessions/2026-06-02-auto-updater/context.md"
+  ],
+  "description": "End-to-end validation against '## Exit Criteria' in context.md. Runs all typecheck configs, full build, and a Linux dist smoke build to prove electron-updater integrates without breaking packaging. Also performs static audits to enforce constraints.",
+  "acceptance_criteria": [
+    "`npm run typecheck` exits 0 (covers all 3 tsconfigs)",
+    "`npm run build` exits 0",
+    "`npm run dist:linux` produces a runnable .AppImage in dist/ (file exists, non-zero size)",
+    "grep -rn '0\\.1\\.0' src/ returns no matches (no hardcoded version strings in renderer)",
+    "grep -rn 'electron-updater' src/ returns no matches (renderer must not import it)",
+    "grep -rn 'ipcRenderer' src/ returns no matches outside of preload.ts (renderer goes through window.app.update)",
+    "grep -n '\"publish\"' electron-builder.json finds the GitHub provider block",
+    "grep -rn 'softprops/action-gh-release' .github/ returns no matches",
+    "Manual dev-mode smoke: `npm run dev` opens the app, Configuracion shows 'Modo desarrollo' state, no uncaught errors in main or renderer console",
+    "Report any failed exit-criterion items from task.json with reproducible commands"
+  ],
+  "deliverables": [
+    "Validation report (in completion summary) listing each acceptance check + pass/fail"
+  ],
+  "agent_id": null,
+  "started_at": null,
+  "completed_at": null,
+  "completion_summary": null
+}

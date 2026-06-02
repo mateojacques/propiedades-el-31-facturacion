@@ -1,6 +1,6 @@
 {
   "name": "propiedades-el-31-facturacion",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Aplicación de escritorio offline para facturación de Propiedades El 31",
   "homepage": "https://propiedadesel31.com.ar",
@@ -28,6 +28,7 @@
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^11.7.0",
     "csv-parse": "^5.6.0",
+    "electron-updater": "^6.3.9",
     "exceljs": "^4.4.0",
     "fastify": "^5.1.0",
     "fastify-type-provider-zod": "^4.0.2",

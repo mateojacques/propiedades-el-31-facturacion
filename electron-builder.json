@@ -2,6 +2,12 @@
   "appId": "ar.com.propiedadesel31.facturacion",
   "productName": "Propiedades El 31 - Facturación",
   "copyright": "Copyright © 2026 Propiedades El 31",
+  "publish": {
+    "provider": "github",
+    "owner": "mateojacques",
+    "repo": "propiedades-el-31-facturacion",
+    "releaseType": "release"
+  },
   "directories": {
     "output": "dist-installer",
     "buildResources": "recursos"

@@ -10,10 +10,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCliente } from '../api/proveedor-cliente';
 import type { TipoCambio } from '../api/tipos';
 import { formatFechaCorta } from '../utils/formato';
+import { SeccionActualizacion } from '../componentes/SeccionActualizacion';
+import { useAutoUpdater } from '../hooks/useAutoUpdater';
 
 export function Configuracion(): JSX.Element {
   const cliente = useCliente();
   const qc = useQueryClient();
+  const { currentVersion } = useAutoUpdater();
 
   // Tipo de cambio
   const tc = useQuery({
@@ -106,6 +109,9 @@ export function Configuracion(): JSX.Element {
         </Box>
       </Paper>
 
+      {/* Auto-actualización */}
+      <SeccionActualizacion />
+
       {/* Carpeta de datos */}
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>Carpeta de datos</Typography>
@@ -119,7 +125,7 @@ export function Configuracion(): JSX.Element {
       </Paper>
       <Divider sx={{ my: 3 }} />
       <Typography variant="caption" color="text.secondary">
-        Propiedades El 31 — Facturación · versión 0.1.0
+        Propiedades El 31 — Facturación · versión {currentVersion || '...'}
       </Typography>
     </Box>
   );

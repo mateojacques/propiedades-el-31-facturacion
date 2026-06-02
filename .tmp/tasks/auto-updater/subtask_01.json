@@ -1,0 +1,35 @@
+{
+  "id": "auto-updater-01",
+  "seq": "01",
+  "title": "Add electron-updater dependency and GitHub publish block to electron-builder.json",
+  "status": "pending",
+  "depends_on": [],
+  "parallel": true,
+  "suggested_agent": "CoderAgent",
+  "context_files": [
+    "/home/mateo/.opencode/context/core/standards/code-quality.md"
+  ],
+  "reference_files": [
+    "package.json",
+    "electron-builder.json",
+    ".tmp/sessions/2026-06-02-auto-updater/context.md"
+  ],
+  "description": "Pure additive change to package.json + electron-builder.json. See '## External Docs Pinned (electron-updater)' in context.md for the exact publish block. Library version is electron-updater@^6.3.x (CJS-only; ships its own types — no @types/* needed).",
+  "acceptance_criteria": [
+    "package.json dependencies contains \"electron-updater\": \"^6.3.0\" (or latest 6.3.x)",
+    "npm install completes successfully and updates package-lock.json",
+    "node_modules/electron-updater exists with package.json and dist/ folder",
+    "electron-builder.json contains a top-level \"publish\" object with provider=github, owner=mateojacques, repo=propiedades-el-31-facturacion, releaseType=release",
+    "electron-builder.json remains valid JSON (jq . electron-builder.json succeeds)",
+    "No other dependencies added or removed; no version bumps to existing packages"
+  ],
+  "deliverables": [
+    "package.json (modified)",
+    "package-lock.json (regenerated)",
+    "electron-builder.json (modified)"
+  ],
+  "agent_id": null,
+  "started_at": null,
+  "completed_at": null,
+  "completion_summary": null
+}

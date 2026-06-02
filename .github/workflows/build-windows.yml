@@ -1,15 +1,28 @@
 name: Build Windows Installer
 
+# To create a release:
+#   1. Bump "version" in package.json (commit + push). This is the single source of truth.
+#   2. Either:
+#        - Push a tag matching v* (e.g. `git tag v0.2.0 && git push origin v0.2.0`), OR
+#        - Run this workflow manually with "create_release" checked.
+# electron-builder will publish `latest.yml` + `.exe` + `.exe.blockmap` to GitHub Releases,
+# which is REQUIRED for in-app auto-update (electron-updater reads `latest.yml`).
+# NOTE: `softprops/action-gh-release` was intentionally removed — it uploads only the `.exe`
+# and breaks auto-update. Do not re-introduce it; let electron-builder own publishing.
+
 on:
   workflow_dispatch:
     inputs:
       create_release:
-        description: 'Create a GitHub Release with the installer'
+        description: 'Create a GitHub Release with the installer (publishes latest.yml for auto-update)'
         type: boolean
         default: false
   push:
     tags:
       - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   build-windows:
@@ -28,11 +41,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Windows installer
-        run: npm run dist
+      # Release path: build + publish in a single electron-builder invocation.
+      # `--publish always` produces and uploads latest.yml + .exe + .exe.blockmap to a
+      # GitHub Release (created/updated automatically based on package.json version).
+      - name: Build & publish to GitHub Releases
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.create_release == true
+        run: npm run build && npx electron-builder --win --x64 --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Non-release path: plain build for manual inspection via upload-artifact.
+      # Skipped on release runs so we don't build twice.
+      - name: Build only (no publish)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') && inputs.create_release != true }}
+        run: npm run dist
+
+      # Always uploaded: useful for manual non-release runs (and harmless on release runs,
+      # where the same .exe is also attached to the GitHub Release).
       - name: Upload installer artifact
         uses: actions/upload-artifact@v5
         with:
@@ -40,15 +65,3 @@ jobs:
           path: dist-installer/*.exe
           if-no-files-found: error
           retention-days: 30
-
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v') || inputs.create_release == true
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist-installer/*.exe
-          draft: false
-          prerelease: false
-          generate_release_notes: true
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}-{1}', github.run_number, github.sha) }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

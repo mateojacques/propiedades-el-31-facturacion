@@ -1,10 +1,10 @@
 /**
  * Layout principal: AppBar + Drawer permanente + área de contenido (Outlet).
  */
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   AppBar, Toolbar, Typography, Drawer, List, ListItemButton, ListItemIcon,
-  ListItemText, Box, Divider,
+  ListItemText, Box, Divider, Snackbar, Alert, Button,
 } from '@mui/material';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import PersonIcon from '@mui/icons-material/Person';
@@ -13,6 +13,7 @@ import FileUploadIcon from '@mui/icons-material/FileUpload';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import DescriptionIcon from '@mui/icons-material/Description';
 import SettingsIcon from '@mui/icons-material/Settings';
+import { useAutoUpdater } from '../hooks/useAutoUpdater';
 
 const ANCHO_DRAWER = 220;
 
@@ -27,6 +28,10 @@ const items = [
 ];
 
 export function Layout(): JSX.Element {
+  const { status } = useAutoUpdater();
+  const navigate = useNavigate();
+  const updateAvailable = status.kind === 'available' || status.kind === 'downloaded';
+
   return (
     <Box sx={{ display: 'flex', height: '100vh' }}>
       <AppBar
@@ -81,6 +86,26 @@ export function Layout(): JSX.Element {
       >
         <Outlet />
       </Box>
+      <Snackbar
+        open={updateAvailable}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          severity={status.kind === 'downloaded' ? 'success' : 'info'}
+          sx={{ width: '100%' }}
+          action={
+            <Button color="inherit" size="small" onClick={() => navigate('/configuracion')}>
+              {status.kind === 'downloaded' ? 'Instalar' : 'Ver detalles'}
+            </Button>
+          }
+        >
+          {status.kind === 'downloaded'
+            ? `Actualización lista para instalar (versión ${status.version}).`
+            : status.kind === 'available'
+              ? `Nueva versión disponible: ${status.version}.`
+              : ''}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

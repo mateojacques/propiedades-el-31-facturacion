@@ -1,0 +1,37 @@
+{
+  "id": "auto-updater-03",
+  "seq": "03",
+  "title": "Create src/hooks/useAutoUpdater.ts renderer hook with typed state machine",
+  "status": "completed",
+  "depends_on": ["05"],
+  "parallel": true,
+  "suggested_agent": "CoderAgent",
+  "context_files": [
+    "/home/mateo/.opencode/context/core/standards/code-quality.md",
+    "/home/mateo/.opencode/context/core/standards/security-patterns.md"
+  ],
+  "reference_files": [
+    "src/tipos/global.d.ts",
+    ".tmp/sessions/2026-06-02-auto-updater/context.md"
+  ],
+  "description": "Create renderer hook. Subscribes to window.app.update.onStatus (added in subtask 05), exposes state machine + actions. See '## Components / 2. src/hooks/useAutoUpdater.ts' in context.md for the exact UpdateStatus discriminated union shape.",
+  "acceptance_criteria": [
+    "File src/hooks/useAutoUpdater.ts exists",
+    "Exports a named hook useAutoUpdater() and a named type UpdateStatus (discriminated union exactly as specified in context.md)",
+    "Returns { status: UpdateStatus, currentVersion: string, check: () => Promise<void>, download: () => Promise<void>, install: () => Promise<void> }",
+    "Initial status is { kind: 'idle' }",
+    "On mount: fetches currentVersion via window.app.update.getVersion() and subscribes to window.app.update.onStatus",
+    "Returns an unsubscribe cleanup from useEffect",
+    "Uses useState/useEffect/useCallback only (no extra deps); does not import 'electron-updater' or 'electron'",
+    "All actions delegate to window.app.update.* (no direct ipcRenderer access)",
+    "tsc -p tsconfig.app.json (or root tsconfig) succeeds with no 'any' types in public surface",
+    "Function bodies are < 50 lines each"
+  ],
+  "deliverables": [
+    "src/hooks/useAutoUpdater.ts"
+  ],
+  "agent_id": "coder-agent",
+  "started_at": "2026-06-02T00:00:00Z",
+  "completed_at": "2026-06-02T00:00:00Z",
+  "completion_summary": "Created src/hooks/useAutoUpdater.ts (105 lines): named exports useAutoUpdater + UpdateStatus + payloadToStatus + UseAutoUpdaterReturn. Subscribes via window.app.update.onStatus, loads version via getCurrentVersion, action wrappers swallow errors (surfaced via update:status). ISO->Date conversion isolated in pure helper. useState/useEffect/useCallback only; no electron-updater import in renderer."
+}

@@ -1,0 +1,35 @@
+{
+  "id": "auto-updater-08",
+  "seq": "08",
+  "title": "Add non-blocking 'update available' Snackbar to Layout.tsx",
+  "status": "completed",
+  "depends_on": ["03"],
+  "parallel": true,
+  "suggested_agent": "OpenFrontendSpecialist",
+  "context_files": [
+    "/home/mateo/.opencode/context/core/standards/code-quality.md",
+    "/home/mateo/.opencode/context/ui/web/ui-styling-standards.md"
+  ],
+  "reference_files": [
+    "src/componentes/Layout.tsx",
+    "src/hooks/useAutoUpdater.ts",
+    ".tmp/sessions/2026-06-02-auto-updater/context.md"
+  ],
+  "description": "Layout consumes useAutoUpdater() and shows a non-blocking MUI Snackbar (or Chip) when status.kind is 'available' or 'downloaded'. Snackbar is dismissible and links to / focuses Configuracion. Spanish copy.",
+  "acceptance_criteria": [
+    "src/componentes/Layout.tsx imports useAutoUpdater",
+    "Renders a MUI <Snackbar> when status.kind === 'available' (message: 'Hay una nueva versión disponible') or 'downloaded' (message: 'Actualización lista para instalar')",
+    "Snackbar is non-blocking (does not modal-block the UI), dismissible, and includes an action button that navigates to/highlights Configuracion",
+    "Does not appear for kinds: idle, checking, not-available, downloading, error",
+    "Existing top-bar / menu container layout is unchanged in structure",
+    "tsc clean; no console errors in dev",
+    "Responsive at xs/sm/md breakpoints"
+  ],
+  "deliverables": [
+    "src/componentes/Layout.tsx (modified)"
+  ],
+  "agent_id": "coder-agent",
+  "started_at": "2026-06-02T00:00:00Z",
+  "completed_at": "2026-06-02T00:00:00Z",
+  "completion_summary": "Layout.tsx consumes useAutoUpdater; non-blocking MUI Snackbar (info/success) for available/downloaded with action button navigating to /configuracion."
+}

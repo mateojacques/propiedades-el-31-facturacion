@@ -12,6 +12,7 @@ import { app, BrowserWindow, ipcMain, shell, dialog } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { startServer, type RunningServer } from '../server/index';
+import { initAutoUpdater, triggerSilentCheck } from './auto-updater';
 
 // ─── Configure userData path BEFORE app is ready ───────────────────────────
 // productName has spaces and an accent; force a safe folder name for AppData.
@@ -110,6 +111,15 @@ app.whenReady().then(async () => {
   try {
     running = await startServer({ userDataPath });
     createWindow();
+    if (mainWindow) {
+      initAutoUpdater(mainWindow);
+      // Silent startup check: 30s after the renderer finishes loading so the
+      // user never sees a spinner from a check they didn't request. Status
+      // events still flow to the renderer; Layout's snackbar surfaces them.
+      mainWindow.webContents.once('did-finish-load', () => {
+        setTimeout(() => triggerSilentCheck(), 30_000);
+      });
+    }
   } catch (err) {
     dialog.showErrorBox(
       'Error al iniciar',

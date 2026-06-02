@@ -1,0 +1,34 @@
+{
+  "id": "auto-updater-06",
+  "seq": "06",
+  "title": "Wire initAutoUpdater(mainWindow) into electron/main.ts with 30s silent startup check",
+  "status": "completed",
+  "depends_on": ["02"],
+  "parallel": true,
+  "suggested_agent": "CoderAgent",
+  "context_files": [
+    "/home/mateo/.opencode/context/core/standards/code-quality.md",
+    "/home/mateo/.opencode/context/core/standards/security-patterns.md"
+  ],
+  "reference_files": [
+    "electron/main.ts",
+    "electron/auto-updater.ts",
+    ".tmp/sessions/2026-06-02-auto-updater/context.md"
+  ],
+  "description": "Minimal-surgery edit to main.ts: import initAutoUpdater, call it after createWindow() resolves, and schedule a single silent autoUpdater.checkForUpdates() ~30s after window-ready (per '## Constraints / Auto-check on startup' in context.md).",
+  "acceptance_criteria": [
+    "electron/main.ts imports initAutoUpdater from './auto-updater'",
+    "initAutoUpdater(mainWindow) is invoked exactly once after mainWindow is created (BrowserWindow constructed and content loaded)",
+    "A setTimeout of 30000ms triggers a silent check (delegates to the IPC 'update:check' or directly calls autoUpdater.checkForUpdates from the auto-updater module — no duplicate listener wiring)",
+    "Single-instance lock and existing IPC handlers remain untouched",
+    "tsc -p tsconfig.electron.json succeeds",
+    "grep finds initAutoUpdater in electron/main.ts exactly once"
+  ],
+  "deliverables": [
+    "electron/main.ts (modified)"
+  ],
+  "agent_id": "coder-agent",
+  "started_at": "2026-06-02T00:00:00Z",
+  "completed_at": "2026-06-02T00:00:00Z",
+  "completion_summary": "Wired initAutoUpdater(mainWindow) + 30s silent startup check via did-finish-load; added triggerSilentCheck export to auto-updater.ts"
+}

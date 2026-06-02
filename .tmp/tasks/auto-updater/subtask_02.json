@@ -1,0 +1,41 @@
+{
+  "id": "auto-updater-02",
+  "seq": "02",
+  "title": "Create electron/auto-updater.ts main process module with IPC handlers",
+  "status": "completed",
+  "depends_on": ["01"],
+  "parallel": true,
+  "suggested_agent": "CoderAgent",
+  "context_files": [
+    "/home/mateo/.opencode/context/core/standards/code-quality.md",
+    "/home/mateo/.opencode/context/core/standards/security-patterns.md"
+  ],
+  "reference_files": [
+    "electron/main.ts",
+    "electron/preload.ts",
+    "tsconfig.electron.json",
+    ".tmp/sessions/2026-06-02-auto-updater/context.md"
+  ],
+  "description": "Create electron/auto-updater.ts exporting initAutoUpdater(mainWindow: BrowserWindow). Wires the autoUpdater event listeners ONCE (see '## External Docs Pinned' / 'Listener cleanup' in context.md) and registers four ipcMain.handle channels plus one webContents.send channel for renderer push events. Dev-mode safe per '### Dev mode gate' section.",
+  "acceptance_criteria": [
+    "File electron/auto-updater.ts exists",
+    "Exports a single named function initAutoUpdater(mainWindow: BrowserWindow): void",
+    "Imports { autoUpdater } from 'electron-updater' and { app, ipcMain, BrowserWindow } from 'electron'",
+    "Sets autoUpdater.autoDownload = false, autoUpdater.autoInstallOnAppQuit = true, autoUpdater.allowPrerelease = false",
+    "Registers ipcMain.handle for exactly these channels: 'update:check', 'update:download', 'update:install', 'update:get-version'",
+    "'update:get-version' returns app.getVersion()",
+    "'update:install' calls autoUpdater.quitAndInstall(false, true)",
+    "Subscribes to autoUpdater events: checking-for-update, update-available, update-not-available, download-progress, update-downloaded, error — each forwards a typed UpdateStatusPayload via mainWindow.webContents.send('update:status', payload)",
+    "When !app.isPackaged: registers IPC handlers that return { kind: 'idle' } or a dev stub, and skips autoUpdater event subscription (must not throw)",
+    "All functions are < 50 lines; no top-level side effects beyond the export",
+    "tsc -p tsconfig.electron.json succeeds with the new file included",
+    "No direct renderer access; all renderer communication is via IPC channels listed above"
+  ],
+  "deliverables": [
+    "electron/auto-updater.ts"
+  ],
+  "agent_id": "coder-agent",
+  "started_at": "2026-06-02T00:00:00Z",
+  "completed_at": "2026-06-02T00:00:00Z",
+  "completion_summary": "Created electron/auto-updater.ts: initAutoUpdater + friendlyMessage exports; 4 IPC handlers, 6 autoUpdater event sends to update:status; dev-mode gated"
+}

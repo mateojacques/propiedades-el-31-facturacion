@@ -1,0 +1,41 @@
+{
+  "id": "auto-updater",
+  "name": "Auto-Update via GitHub Releases",
+  "status": "active",
+  "objective": "Add one-click 'update to latest release' button in Configuracion with state-driven UX, wired to electron-updater + GitHub provider; CI must publish latest.yml.",
+  "context_files": [
+    "/home/mateo/.opencode/context/core/standards/code-quality.md",
+    "/home/mateo/.opencode/context/core/standards/security-patterns.md",
+    "/home/mateo/.opencode/context/core/workflows/external-context-integration.md",
+    "/home/mateo/.opencode/context/core/workflows/feature-breakdown.md"
+  ],
+  "reference_files": [
+    "electron/main.ts",
+    "electron/preload.ts",
+    "src/tipos/global.d.ts",
+    "src/paginas/Configuracion.tsx",
+    "src/componentes/Layout.tsx",
+    "package.json",
+    "electron-builder.json",
+    "tsconfig.electron.json",
+    ".github/workflows/build-windows.yml",
+    ".tmp/sessions/2026-06-02-auto-updater/context.md"
+  ],
+  "exit_criteria": [
+    "Configuracion shows 'Versión actual: X.Y.Z' + 'Buscar actualizaciones' button",
+    "All states (idle/checking/available/not-available/downloading/downloaded/error) render correctly",
+    "Download progress is smooth (LinearProgress + MB/MB + %)",
+    "'Reiniciar e instalar ahora' closes app, runs installer silently, relaunches",
+    "Silent startup check after 30s; Snackbar appears in Layout if update available",
+    "Dev mode shows friendly 'Modo desarrollo' message, never crashes",
+    "CI publishes latest.yml + .exe + .blockmap to GitHub Releases",
+    "npm run typecheck (all 3 configs) clean",
+    "npm run build clean",
+    "npm run dist:linux produces working AppImage",
+    "No hardcoded version strings in renderer; no electron-updater calls in renderer (IPC only)"
+  ],
+  "subtask_count": 10,
+  "completed_count": 0,
+  "created_at": "2026-06-02T14:30:00-03:00",
+  "completed_at": null
+}
